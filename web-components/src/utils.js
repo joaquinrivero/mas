@@ -2,6 +2,12 @@ import { EVENT_TYPE_READY } from './constants.js';
 
 const MAS_COMMERCE_SERVICE = 'mas-commerce-service';
 
+/**
+ * Returns a debounced version of the given function.
+ * @param {Function} func - The function to debounce
+ * @param {number} delay - Delay in milliseconds
+ * @returns {Function} The debounced wrapper function
+ */
 export function debounce(func, delay) {
     let debounceTimer;
     return function () {
