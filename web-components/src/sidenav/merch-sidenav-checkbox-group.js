@@ -96,7 +96,7 @@ export class MerchSidenavCheckboxGroup extends LitElement {
     }
 
     render() {
-        return html`<div aria-label="${this.label}">
+        return html`<div role="group" aria-label="${this.label}">
             <div
                 @change="${(e) => this.selectionChanged(e)}"
                 class="checkbox-group"
