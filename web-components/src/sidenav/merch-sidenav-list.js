@@ -225,6 +225,7 @@ export class MerchSidenavList extends LitElement {
 
     render() {
         return html`<div
+            role="group"
             aria-label="${this.label}"
             @change="${(e) => this.selectionChanged(e)}"
         >
