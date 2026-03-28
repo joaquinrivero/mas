@@ -854,5 +854,51 @@ describe('settings', () => {
                 expect(result.body.settings.secureLabel).to.equal('');
             });
         });
+
+        it('extracts ctaMode text value', async () => {
+            const context = {
+                locale: 'en_US',
+                body: {
+                    fields: { variant: 'plans' },
+                },
+                promises: {
+                    settings: Promise.resolve({
+                        ctaMode: {
+                            default: {
+                                name: 'ctaMode',
+                                valuetype: 'text',
+                                textValue: 'buy-only',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.ctaMode).to.equal('buy-only');
+        });
+
+        it('extracts learnMoreUrl text value', async () => {
+            const context = {
+                locale: 'en_US',
+                body: {
+                    fields: { variant: 'plans' },
+                },
+                promises: {
+                    settings: Promise.resolve({
+                        learnMoreUrl: {
+                            default: {
+                                name: 'learnMoreUrl',
+                                valuetype: 'text',
+                                textValue: 'https://adobe.com/learn',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.learnMoreUrl).to.equal('https://adobe.com/learn');
+        });
     });
 });

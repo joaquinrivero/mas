@@ -1035,6 +1035,18 @@ class MasSettings extends LitElement {
                 </div>
             `;
         }
+        if (this.valueEditorType === 'select') {
+            const options = this.settingDefinition?.options || [];
+            return html`
+                <sp-picker
+                    name="setting-value"
+                    .value=${`${this.form.value || ''}`}
+                    @change=${(event) => this.#setFormField('value', event.target.value)}
+                >
+                    ${options.map((opt) => html`<sp-menu-item value=${opt}>${opt}</sp-menu-item>`)}
+                </sp-picker>
+            `;
+        }
         if (!this.valueEditorType) return nothing;
         return html`
             <sp-textfield

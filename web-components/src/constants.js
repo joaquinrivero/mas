@@ -163,6 +163,12 @@ export const MODAL_TYPE_3_IN_1 = {
     CRM: 'crm',
 };
 
+export const CTA_MODE = {
+    DEFAULT: 'default',
+    BUY_ONLY: 'buy-only',
+    TRIAL_ONLY: 'trial-only',
+};
+
 export const MARK_START_SUFFIX = ':start';
 export const MARK_DURATION_SUFFIX = ':duration';
 

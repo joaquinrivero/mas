@@ -23,6 +23,7 @@ import {
     appendSlot,
     processAddon,
     processTrialBadge,
+    processCtaMode,
 } from '../src/hydrate.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
@@ -967,5 +968,83 @@ describe('appendSlot', () => {
         const appended = el.querySelector('[slot="test-slot"]');
         expect(appended).to.exist;
         expect(appended.textContent).to.equal('This is a...');
+    });
+});
+
+describe('processCtaMode', () => {
+    const buyLink = '<a href="#" data-modal="d2p">Buy Now</a>';
+    const trialLink = '<a href="#" data-modal="twp">Free Trial</a>';
+    const noModalLink = '<a href="#">Learn</a>';
+
+    it('default mode: leaves fields.ctas unchanged', () => {
+        const fields = { ctas: `${buyLink}${trialLink}` };
+        processCtaMode(fields, { ctaMode: 'default' });
+        expect(fields.ctas).to.equal(`${buyLink}${trialLink}`);
+    });
+
+    it('no ctaMode: leaves fields.ctas unchanged', () => {
+        const fields = { ctas: `${buyLink}${trialLink}` };
+        processCtaMode(fields, {});
+        expect(fields.ctas).to.equal(`${buyLink}${trialLink}`);
+    });
+
+    it('buy-only: removes TWP trial link, retains D2P buy link', () => {
+        const fields = { ctas: `${buyLink}${trialLink}` };
+        processCtaMode(fields, { ctaMode: 'buy-only' });
+        const container = document.createElement('div');
+        container.innerHTML = fields.ctas;
+        const links = container.querySelectorAll('a');
+        expect(links).to.have.length(1);
+        expect(links[0].dataset.modal).to.equal('d2p');
+    });
+
+    it('trial-only: removes D2P buy link, retains TWP trial link', () => {
+        const fields = { ctas: `${buyLink}${trialLink}` };
+        processCtaMode(fields, { ctaMode: 'trial-only' });
+        const container = document.createElement('div');
+        container.innerHTML = fields.ctas;
+        const links = container.querySelectorAll('a');
+        expect(links).to.have.length(1);
+        expect(links[0].dataset.modal).to.equal('twp');
+    });
+
+    it('buy-only single conflicting CTA with learnMoreUrl: replaces with Learn More anchor', () => {
+        const fields = { ctas: trialLink };
+        processCtaMode(fields, { ctaMode: 'buy-only', learnMoreUrl: 'https://adobe.com/learn' });
+        const container = document.createElement('div');
+        container.innerHTML = fields.ctas;
+        const link = container.querySelector('a');
+        expect(link).to.exist;
+        expect(link.getAttribute('href')).to.equal('https://adobe.com/learn');
+        expect(link.className).to.equal('secondary-link');
+        expect(link.textContent).to.equal('Learn More');
+    });
+
+    it('buy-only single conflicting CTA without learnMoreUrl: sets fields.ctas to empty string', () => {
+        const fields = { ctas: trialLink };
+        processCtaMode(fields, { ctaMode: 'buy-only' });
+        expect(fields.ctas).to.equal('');
+    });
+
+    it('trial-only single conflicting CTA without learnMoreUrl: sets fields.ctas to empty string', () => {
+        const fields = { ctas: buyLink };
+        processCtaMode(fields, { ctaMode: 'trial-only' });
+        expect(fields.ctas).to.equal('');
+    });
+
+    it('no data-modal attribute on links: no change (pass-through)', () => {
+        const fields = { ctas: noModalLink };
+        const original = fields.ctas;
+        processCtaMode(fields, { ctaMode: 'buy-only' });
+        const container = document.createElement('div');
+        container.innerHTML = fields.ctas;
+        expect(container.querySelectorAll('a')).to.have.length(1);
+        expect(fields.ctas).to.equal(original);
+    });
+
+    it('no ctas field: returns without error', () => {
+        const fields = {};
+        processCtaMode(fields, { ctaMode: 'buy-only' });
+        expect(fields.ctas).to.be.undefined;
     });
 });

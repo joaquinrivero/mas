@@ -1,4 +1,4 @@
-import { SELECTOR_MAS_INLINE_PRICE } from './constants.js';
+import { SELECTOR_MAS_INLINE_PRICE, CTA_MODE, MODAL_TYPE_3_IN_1 } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
 
@@ -680,6 +680,52 @@ function createConsonantButton(
     return button;
 }
 
+/**
+ * Suppresses CTAs that conflict with the active ctaMode setting.
+ * Fully removes conflicting CTAs from the DOM; falls back to a
+ * Learn More anchor if no compatible CTA remains.
+ * @param {object} fields - fragment fields
+ * @param {object} settings - resolved settings (may include ctaMode, learnMoreUrl)
+ */
+export function processCtaMode(fields, settings) {
+    const mode = settings?.ctaMode;
+    if (!mode || mode === CTA_MODE.DEFAULT) return;
+
+    const ctas = fields.ctas;
+    if (!ctas) return;
+
+    const container = document.createElement('div');
+    container.innerHTML = ctas;
+
+    const links = [...container.querySelectorAll('a')];
+    if (!links.length) return;
+
+    const suppressModalType =
+        mode === CTA_MODE.BUY_ONLY
+            ? MODAL_TYPE_3_IN_1.TWP
+            : MODAL_TYPE_3_IN_1.D2P;
+
+    links.forEach((link) => {
+        if (link.dataset.modal === suppressModalType) {
+            link.remove();
+        }
+    });
+
+    const remaining = container.querySelectorAll('a');
+    if (!remaining.length) {
+        const fallbackUrl = settings?.learnMoreUrl;
+        if (fallbackUrl) {
+            const learnMore = createTag('a', { href: fallbackUrl, class: 'secondary-link' }, 'Learn More');
+            container.append(learnMore);
+        } else {
+            fields.ctas = '';
+            return;
+        }
+    }
+
+    fields.ctas = container.innerHTML;
+}
+
 export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
     if (fields.ctas) {
         // Process tooltips in CTAs
@@ -826,6 +872,7 @@ export async function hydrate(fragment, merchCard) {
         // UptLink construction may fail (customized built-in element timing);
         // must not block remaining hydration steps.
     }
+    processCtaMode(fields, settings);
     processCTAs(fields, merchCard, mapping, variant);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
