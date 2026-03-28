@@ -386,6 +386,7 @@ class MasSettings extends LitElement {
         if (this.dialog?.type === 'override') {
             if (this.settingDefinition?.editor === 'quantity-select') return 'quantity-select';
             if (this.settingDefinition?.editor === 'addon') return 'addon';
+            if (this.settingDefinition?.editor === 'select') return 'select';
             return this.formValueType === 'boolean' ? 'boolean' : 'text';
         }
         if (this.settingDefinition?.editor) return this.settingDefinition.editor;
