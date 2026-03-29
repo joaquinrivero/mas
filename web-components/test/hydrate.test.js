@@ -10,6 +10,7 @@ import {
     processPrices,
     processBackgroundImage,
     processCTAs,
+    processCtaMode,
     processSubtitle,
     processAnalytics,
     ANALYTICS_TAG,
@@ -967,5 +968,99 @@ describe('appendSlot', () => {
         const appended = el.querySelector('[slot="test-slot"]');
         expect(appended).to.exist;
         expect(appended.textContent).to.equal('This is a...');
+    });
+});
+
+describe('processCtaMode', () => {
+    function makeFooter(html) {
+        const div = document.createElement('div');
+        div.setAttribute('slot', 'footer');
+        div.innerHTML = html;
+        return div;
+    }
+
+    function makeCard(footerHtml) {
+        const card = document.createElement('div');
+        if (footerHtml !== undefined) {
+            card.append(makeFooter(footerHtml));
+        }
+        return card;
+    }
+
+    it('does nothing when ctaMode is default', () => {
+        const card = makeCard('<a data-modal="twp">Trial</a><a>Buy</a>');
+        processCtaMode({}, card, { ctaMode: 'default' });
+        expect(card.querySelectorAll('a')).to.have.lengthOf(2);
+    });
+
+    it('does nothing when ctaMode is absent', () => {
+        const card = makeCard('<a data-modal="twp">Trial</a><a>Buy</a>');
+        processCtaMode({}, card, {});
+        expect(card.querySelectorAll('a')).to.have.lengthOf(2);
+    });
+
+    it('does nothing when settings is null', () => {
+        const card = makeCard('<a data-modal="twp">Trial</a><a>Buy</a>');
+        processCtaMode({}, card, null);
+        expect(card.querySelectorAll('a')).to.have.lengthOf(2);
+    });
+
+    it('does nothing when no [slot] footer is found', () => {
+        const card = document.createElement('div');
+        processCtaMode({}, card, { ctaMode: 'buy-only' });
+        expect(card.querySelectorAll('a')).to.have.lengthOf(0);
+    });
+
+    it('does nothing when footer has no CTAs', () => {
+        const card = makeCard('');
+        processCtaMode({}, card, { ctaMode: 'buy-only' });
+        expect(card.querySelector('[slot]')).to.exist;
+    });
+
+    it('buy-only: removes trial CTA, keeps buy CTA', () => {
+        const card = makeCard('<a data-modal="twp">Trial</a><a>Buy</a>');
+        processCtaMode({}, card, { ctaMode: 'buy-only' });
+        const remaining = [...card.querySelectorAll('a')];
+        expect(remaining).to.have.lengthOf(1);
+        expect(remaining[0].textContent).to.equal('Buy');
+    });
+
+    it('trial-only: removes buy CTA, keeps trial CTA', () => {
+        const card = makeCard('<a data-modal="twp">Trial</a><a>Buy</a>');
+        processCtaMode({}, card, { ctaMode: 'trial-only' });
+        const remaining = [...card.querySelectorAll('a')];
+        expect(remaining).to.have.lengthOf(1);
+        expect(remaining[0].getAttribute('data-modal')).to.equal('twp');
+    });
+
+    it('buy-only: replaces single trial-only CTA with Learn More fallback', () => {
+        const card = makeCard('<a data-modal="twp">Trial</a>');
+        const fields = { learnMoreUrl: 'https://adobe.com/learn', learnMoreLabel: 'Learn More' };
+        processCtaMode(fields, card, { ctaMode: 'buy-only' });
+        const footer = card.querySelector('[slot]');
+        const fallback = footer.querySelector('a.learn-more-fallback');
+        expect(fallback).to.exist;
+        expect(fallback.getAttribute('href')).to.equal('https://adobe.com/learn');
+        expect(fallback.textContent).to.equal('Learn More');
+    });
+
+    it('trial-only: replaces single buy-only CTA with Learn More fallback', () => {
+        const card = makeCard('<a>Buy</a>');
+        const fields = { learnMoreUrl: 'https://adobe.com/learn', learnMoreLabel: 'Start here' };
+        processCtaMode(fields, card, { ctaMode: 'trial-only' });
+        const footer = card.querySelector('[slot]');
+        const fallback = footer.querySelector('a.learn-more-fallback');
+        expect(fallback).to.exist;
+        expect(fallback.getAttribute('href')).to.equal('https://adobe.com/learn');
+        expect(fallback.textContent).to.equal('Start here');
+    });
+
+    it('fallback uses # and "Learn More" when fields are missing', () => {
+        const card = makeCard('<a data-modal="twp">Trial</a>');
+        processCtaMode({}, card, { ctaMode: 'buy-only' });
+        const fallback = card.querySelector('a.learn-more-fallback');
+        expect(fallback).to.exist;
+        expect(fallback.getAttribute('href')).to.equal('#');
+        expect(fallback.textContent).to.equal('Learn More');
     });
 });

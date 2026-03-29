@@ -680,6 +680,39 @@ function createConsonantButton(
     return button;
 }
 
+export function processCtaMode(fields, merchCard, settings) {
+    const ctaMode = settings?.ctaMode;
+    if (!ctaMode || ctaMode === 'default') return;
+
+    const footer = merchCard.querySelector('[slot]');
+    if (!footer) return;
+    const allCtas = [...footer.querySelectorAll('a, checkout-button, checkout-link, sp-button')];
+    if (!allCtas.length) return;
+
+    const isTrialCta = (el) =>
+        el.dataset?.modal === 'twp' ||
+        el.getAttribute('data-modal') === 'twp';
+
+    const suppressMode = ctaMode === 'buy-only' ? 'trial' : 'buy';
+
+    const toSuppress = allCtas.filter((el) =>
+        suppressMode === 'trial' ? isTrialCta(el) : !isTrialCta(el),
+    );
+    const toKeep = allCtas.filter((el) =>
+        suppressMode === 'trial' ? !isTrialCta(el) : isTrialCta(el),
+    );
+
+    if (toKeep.length > 0) {
+        toSuppress.forEach((el) => el.remove());
+    } else {
+        const learnMoreUrl = fields?.learnMoreUrl || '#';
+        const learnMoreLabel = fields?.learnMoreLabel || 'Learn More';
+        const fallback = createTag('a', { href: learnMoreUrl, class: 'learn-more-fallback' }, learnMoreLabel);
+        footer.innerHTML = '';
+        footer.append(fallback);
+    }
+}
+
 export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
     if (fields.ctas) {
         // Process tooltips in CTAs
@@ -827,6 +860,7 @@ export async function hydrate(fragment, merchCard) {
         // must not block remaining hydration steps.
     }
     processCTAs(fields, merchCard, mapping, variant);
+    processCtaMode(fields, merchCard, settings);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

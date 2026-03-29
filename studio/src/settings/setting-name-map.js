@@ -18,5 +18,6 @@ export const getSettingDefaultValue = (definition) => {
     if (definition.editor === 'quantity-select') {
         return createQuantitySelectValue({ title: '', min: '1', step: '1' });
     }
+    if (definition.editor === 'select') return 'default';
     return '';
 };

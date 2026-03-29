@@ -626,6 +626,55 @@ describe('settings', () => {
             expect(result.body.priceLiterals.perUnitLabel).to.equal(customPerUnitLabel);
         });
 
+        it('extracts ctaMode text setting from settings entry', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        ctaMode: {
+                            default: {
+                                name: 'ctaMode',
+                                valuetype: 'text',
+                                textValue: 'buy-only',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.ctaMode).to.equal('buy-only');
+        });
+
+        it('ctaMode resolves locale override correctly', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        ctaMode: {
+                            default: {
+                                name: 'ctaMode',
+                                valuetype: 'text',
+                                textValue: 'default',
+                            },
+                            override: [
+                                {
+                                    name: 'ctaMode',
+                                    valuetype: 'text',
+                                    textValue: 'trial-only',
+                                    locales: ['fr_FR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.ctaMode).to.equal('trial-only');
+        });
+
         it('uses displayPlanType (showPlanType) from fragment settings when present', async () => {
             const context = {
                 locale: 'fr_FR',
