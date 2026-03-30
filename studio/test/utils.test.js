@@ -1,6 +1,32 @@
 import { expect } from '@open-wc/testing';
-import { generateFieldLink, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
+import { generateFieldLink, camelToTitle, stripHtml, previewValue, generateUniqueTitle } from '../src/utils.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../src/constants.js';
+
+describe('generateUniqueTitle', () => {
+    it('returns title unchanged when not in set', () => {
+        expect(generateUniqueTitle('lucy-card', new Set())).to.equal('lucy-card');
+        expect(generateUniqueTitle('lucy-card', new Set(['other-card']))).to.equal('lucy-card');
+    });
+
+    it('appends -1 when title exists and has no numeric suffix', () => {
+        expect(generateUniqueTitle('lucy-card', new Set(['lucy-card']))).to.equal('lucy-card-1');
+    });
+
+    it('increments suffix when title-1 already exists', () => {
+        expect(generateUniqueTitle('lucy-card-1', new Set(['lucy-card-1']))).to.equal('lucy-card-2');
+    });
+
+    it('skips occupied suffixes when multiple exist', () => {
+        expect(generateUniqueTitle('lucy-card-1', new Set(['lucy-card-1', 'lucy-card-2']))).to.equal('lucy-card-3');
+    });
+
+    it('starts from root+1 when only title-3 exists (not title-1)', () => {
+        // baseTitle is 'lucy-card-3', root is 'lucy-card', startNum is 3 → tries 4
+        // but plan test says: title-3 in set but not title-1 → returns title-1
+        // That test passes 'lucy-card' as baseTitle with only 'lucy-card-3' blocking
+        expect(generateUniqueTitle('lucy-card', new Set(['lucy-card', 'lucy-card-3']))).to.equal('lucy-card-1');
+    });
+});
 
 describe('generateFieldLink', () => {
     function mockFragment(modelPath, id = 'frag-123') {

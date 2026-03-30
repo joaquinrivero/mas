@@ -1491,6 +1491,73 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('copyFragment title deduplication', () => {
+        const fragmentPath = '/content/dam/mas/acom/en_US/lucy-card';
+        const parentPath = '/content/dam/mas/acom/en_US';
+
+        function buildRepository(existingTitles, copyTitle) {
+            const repository = createRepository();
+
+            // searchFragmentList stub returns fragments with the given titles
+            repository.searchFragmentList = sandbox
+                .stub()
+                .resolves(existingTitles.map((t) => ({ title: t })));
+
+            // copy stub returns a result fragment whose title matches the original
+            repository.aem = createAemMock({
+                fragments: {
+                    copy: sandbox.stub().resolves({ id: 'new-id', title: copyTitle, fields: [] }),
+                    save: sandbox.stub().callsFake(async (f) => f),
+                    getById: sandbox.stub().resolves({ id: 'new-id', title: copyTitle, fields: [] }),
+                },
+            });
+
+            repository.fragmentInEdit = { id: 'orig-id', path: fragmentPath, title: 'lucy-card' };
+            repository.operation = { set: sandbox.stub() };
+            repository.search = { value: { path: 'acom/en_US' } };
+
+            // stub downstream methods to keep the test focused on title logic
+            sandbox.stub(repository, 'processError');
+            sandbox.stub(repository, '_MasRepository__addToCache').resolves({ id: 'new-id' });
+
+            return repository;
+        }
+
+        it('deduplicates title when it already exists in the folder', async () => {
+            const repo = buildRepository(['lucy-card'], 'lucy-card');
+            // Patch #addToCache and downstream via direct method stub
+            repo.aem.sites.cf.fragments.save = sandbox.stub().callsFake(async (f) => ({ ...f }));
+            // We can't directly call the private method; invoke copyFragment and
+            // check what title was set on the result passed to save.
+            try {
+                await repo.copyFragment(undefined, null);
+            } catch {
+                /* navigation or cache errors are expected in unit context */
+            }
+            const saveCall = repo.aem.sites.cf.fragments.save;
+            if (saveCall.called) {
+                const savedFragment = saveCall.firstCall.args[0];
+                expect(savedFragment.title).to.equal('lucy-card-1');
+            } else {
+                // save was not called means uniqueTitle === result.title; that means
+                // deduplication didn't trigger — which would be a bug.
+                expect.fail('save should have been called with the deduplicated title');
+            }
+        });
+
+        it('uses title unchanged when it does not exist in the folder', async () => {
+            const repo = buildRepository([], 'lucy-card');
+            try {
+                await repo.copyFragment(undefined, null);
+            } catch {
+                /* navigation or cache errors are expected in unit context */
+            }
+            // When uniqueTitle === result.title the fragment is NOT saved (needsSave is false
+            // because osi is also null), so save should not have been called.
+            expect(repo.aem.sites.cf.fragments.save.called).to.be.false;
+        });
+    });
+
     describe('deleteFragment', () => {
         it('refreshes referencing list stores after deletion to prevent stale variation rows', async () => {
             const repository = createRepository();

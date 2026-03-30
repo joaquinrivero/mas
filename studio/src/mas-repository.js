@@ -7,7 +7,7 @@ import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
+import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath, generateUniqueTitle } from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -909,6 +909,20 @@ export class MasRepository extends LitElement {
         }
     }
 
+    async #generateUniqueFragmentTitle(baseTitle, parentPath) {
+        const existingTitles = new Set();
+        try {
+            const fragments = await this.searchFragmentList({ path: parentPath }, 1000, null);
+            for (const f of fragments) {
+                if (f.title) existingTitles.add(f.title);
+            }
+        } catch (err) {
+            console.warn('Could not fetch fragments for title deduplication:', err?.message);
+            return baseTitle;
+        }
+        return generateUniqueTitle(baseTitle, existingTitles);
+    }
+
     async #addToCache(fragmentData) {
         await initFragmentCache();
         for (const reference of fragmentData.references || []) {
@@ -1012,12 +1026,15 @@ export class MasRepository extends LitElement {
     async copyFragment(updatedTitle, osi, tags = []) {
         try {
             this.operation.set(OPERATIONS.CLONE);
+            const intendedTitle = updatedTitle?.trim() || this.fragmentInEdit.title;
+            const parentPath = this.fragmentInEdit.path.split('/').slice(0, -1).join('/');
+            const uniqueTitle = await this.#generateUniqueFragmentTitle(intendedTitle, parentPath);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+            const needsSave = uniqueTitle !== result.title || osi;
             if (needsSave) {
-                if (updatedTitle && updatedTitle !== result.title) {
-                    result.title = updatedTitle;
+                if (uniqueTitle !== result.title) {
+                    result.title = uniqueTitle;
                 }
                 result.fields.forEach((field) => {
                     if (osi && field.name === 'osi') {

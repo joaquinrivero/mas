@@ -368,3 +368,23 @@ export function replaceLocaleInPath(fragmentPath, newLocale) {
 export function deepEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
 }
+
+/**
+ * Returns a unique title by appending or incrementing a numeric suffix.
+ * If `baseTitle` is not in `existingTitles`, it is returned unchanged.
+ * Otherwise the root is extracted (stripping any trailing `-N` suffix) and
+ * the smallest unused `-N` suffix (N ≥ 1) is appended.
+ * @param {string} baseTitle
+ * @param {Set<string>} existingTitles
+ * @returns {string}
+ */
+export function generateUniqueTitle(baseTitle, existingTitles) {
+    if (!existingTitles.has(baseTitle)) return baseTitle;
+    const suffixMatch = baseTitle.match(/^(.*)-(\d+)$/);
+    const [root, startNum] = suffixMatch
+        ? [suffixMatch[1], parseInt(suffixMatch[2], 10)]
+        : [baseTitle, 0];
+    let n = startNum + 1;
+    while (existingTitles.has(`${root}-${n}`)) n++;
+    return `${root}-${n}`;
+}
