@@ -1007,6 +1007,38 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Finds a unique fragment title scoped to a parent path.
+     * Strips any existing trailing -N suffix from baseTitle, then increments
+     * until a title is not taken by any fragment in parentPath.
+     * @param {string} baseTitle - The original fragment title
+     * @param {string} parentPath - The parent folder path to scope uniqueness
+     * @returns {Promise<string>} A title that does not conflict with existing fragments
+     */
+    async generateUniqueTitle(baseTitle, parentPath) {
+        const suffixMatch = baseTitle.match(/^(.*)-(\d+)$/);
+        const canonical = suffixMatch ? suffixMatch[1] : baseTitle;
+
+        const existingTitles = new Set();
+        try {
+            const generator = this.aem.sites.cf.fragments.search({ path: parentPath });
+            for await (const items of generator) {
+                for (const item of items ?? []) {
+                    if (item?.title) existingTitles.add(item.title);
+                }
+            }
+        } catch {
+            return `${canonical}-1`;
+        }
+
+        if (!existingTitles.has(canonical)) return canonical;
+        let counter = 1;
+        while (existingTitles.has(`${canonical}-${counter}`)) {
+            counter++;
+        }
+        return `${canonical}-${counter}`;
+    }
+
+    /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async copyFragment(updatedTitle, osi, tags = []) {
@@ -1014,10 +1046,12 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+            const parentPath = this.fragmentInEdit.path.split('/').slice(0, -1).join('/');
+            const resolvedTitle = updatedTitle || (await this.generateUniqueTitle(this.fragmentInEdit.title, parentPath));
+            const needsSave = resolvedTitle !== result.title || osi;
             if (needsSave) {
-                if (updatedTitle && updatedTitle !== result.title) {
-                    result.title = updatedTitle;
+                if (resolvedTitle !== result.title) {
+                    result.title = resolvedTitle;
                 }
                 result.fields.forEach((field) => {
                     if (osi && field.name === 'osi') {

@@ -622,6 +622,8 @@ export default class EditorPanel extends LitElement {
             const confirmed = await this.promptDiscardChanges();
             if (!confirmed) return;
         }
+        const parentPath = this.fragment.path.split('/').slice(0, -1).join('/');
+        this.titleClone = await this.repository.generateUniqueTitle(this.fragment.title, parentPath);
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
     }
@@ -897,7 +899,7 @@ export default class EditorPanel extends LitElement {
                     placeholder="new fragment title"
                     id="new-fragment-title"
                     data-field="title"
-                    value="${this.fragment.title}"
+                    value="${this.titleClone}"
                     @input=${this.#updateCloneFragmentInternal}
                 ></sp-textfield>
                 ${this.fragment.model.path === CARD_MODEL_PATH

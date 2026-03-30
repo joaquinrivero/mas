@@ -1523,4 +1523,61 @@ describe('MasRepository dictionary helpers', () => {
             expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
         });
     });
+
+    describe('generateUniqueTitle', () => {
+        const makeSearchStub = (titles) => {
+            async function* gen() {
+                yield titles.map((title) => ({ title }));
+            }
+            return sandbox.stub().returns(gen());
+        };
+
+        it('returns the canonical title when it does not exist in the parent path', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: { search: makeSearchStub(['other-card', 'another-card']) },
+            });
+            const result = await repository.generateUniqueTitle('my-card', '/content/dam/mas/acom');
+            expect(result).to.equal('my-card');
+        });
+
+        it('returns canonical-1 when the canonical title already exists', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: { search: makeSearchStub(['my-card', 'other-card']) },
+            });
+            const result = await repository.generateUniqueTitle('my-card', '/content/dam/mas/acom');
+            expect(result).to.equal('my-card-1');
+        });
+
+        it('returns canonical-2 when both canonical and canonical-1 already exist', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: { search: makeSearchStub(['my-card', 'my-card-1']) },
+            });
+            const result = await repository.generateUniqueTitle('my-card', '/content/dam/mas/acom');
+            expect(result).to.equal('my-card-2');
+        });
+
+        it('strips an existing -N suffix before computing the canonical base', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: { search: makeSearchStub(['lucy-card', 'lucy-card-1']) },
+            });
+            // Input has trailing -1; canonical becomes "lucy-card", next free is "lucy-card-2"
+            const result = await repository.generateUniqueTitle('lucy-card-1', '/content/dam/mas/acom');
+            expect(result).to.equal('lucy-card-2');
+        });
+
+        it('returns canonical-1 when the search API throws', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    search: sandbox.stub().throws(new Error('search failed')),
+                },
+            });
+            const result = await repository.generateUniqueTitle('my-card', '/content/dam/mas/acom');
+            expect(result).to.equal('my-card-1');
+        });
+    });
 });
