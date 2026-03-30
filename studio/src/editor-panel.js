@@ -15,7 +15,7 @@ import {
 } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse, showToast, extractLocaleFromPath } from './utils.js';
+import { generateCodeToUse, generateUniqueTitle, showToast, extractLocaleFromPath } from './utils.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import router from './router.js';
@@ -612,6 +612,7 @@ export default class EditorPanel extends LitElement {
     cancelClone() {
         this.showCloneDialog = false;
         Store.showCloneDialog.set(false);
+        this.titleClone = '';
         this.tagsClone = [];
         this.osiClone = null;
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelectClone);
@@ -622,6 +623,9 @@ export default class EditorPanel extends LitElement {
             const confirmed = await this.promptDiscardChanges();
             if (!confirmed) return;
         }
+        const fragments = Store.fragments.list.data.get() ?? [];
+        const existingTitles = fragments.map((fs) => fs.get?.()?.title).filter(Boolean);
+        this.titleClone = generateUniqueTitle(this.fragment.title, existingTitles);
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
     }
@@ -897,7 +901,7 @@ export default class EditorPanel extends LitElement {
                     placeholder="new fragment title"
                     id="new-fragment-title"
                     data-field="title"
-                    value="${this.fragment.title}"
+                    value="${this.titleClone}"
                     @input=${this.#updateCloneFragmentInternal}
                 ></sp-textfield>
                 ${this.fragment.model.path === CARD_MODEL_PATH

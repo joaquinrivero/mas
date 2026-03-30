@@ -1,5 +1,5 @@
 import { expect } from '@open-wc/testing';
-import { generateFieldLink, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
+import { generateFieldLink, generateUniqueTitle, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../src/constants.js';
 
 describe('generateFieldLink', () => {
@@ -66,6 +66,28 @@ describe('generateFieldLink', () => {
 
     it('returns null when fragment is null', () => {
         expect(generateFieldLink(null, '/acom', 'prices')).to.be.null;
+    });
+});
+
+describe('generateUniqueTitle', () => {
+    it('returns title unchanged when not in existing set', () => {
+        expect(generateUniqueTitle('lucy-card', ['other-card'])).to.equal('lucy-card');
+    });
+
+    it('returns title-1 when title exists and has no numeric suffix', () => {
+        expect(generateUniqueTitle('lucy-card', ['lucy-card'])).to.equal('lucy-card-1');
+    });
+
+    it('strips existing suffix and returns stem-2 when stem-1 exists', () => {
+        expect(generateUniqueTitle('lucy-card-1', ['lucy-card-1'])).to.equal('lucy-card-2');
+    });
+
+    it('increments past multiple existing clones', () => {
+        expect(generateUniqueTitle('lucy-card', ['lucy-card', 'lucy-card-1', 'lucy-card-2'])).to.equal('lucy-card-3');
+    });
+
+    it('returns title unchanged when existing titles array is empty', () => {
+        expect(generateUniqueTitle('lucy-card', [])).to.equal('lucy-card');
     });
 });
 
