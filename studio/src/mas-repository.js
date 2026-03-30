@@ -8,6 +8,7 @@ import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
+import { generateUniqueFragmentTitle } from './utils/fragment-utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -1014,11 +1015,19 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+            const parentPath = result.path.split('/').slice(0, -1).join('/');
+            const existingTitles = Store.fragments.list.data
+                .get()
+                .filter((s) => {
+                    const f = s.get();
+                    return f && f.id !== result.id && f.path.startsWith(parentPath + '/');
+                })
+                .map((s) => s.get().title);
+            const baseTitle = updatedTitle || result.title;
+            const resolvedTitle = generateUniqueFragmentTitle(baseTitle, existingTitles);
+            const needsSave = resolvedTitle !== result.title || osi;
             if (needsSave) {
-                if (updatedTitle && updatedTitle !== result.title) {
-                    result.title = updatedTitle;
-                }
+                if (resolvedTitle !== result.title) result.title = resolvedTitle;
                 result.fields.forEach((field) => {
                     if (osi && field.name === 'osi') {
                         field.values = [osi];
