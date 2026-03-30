@@ -389,6 +389,7 @@ export default class MasFragmentEditor extends LitElement {
         variationsToDelete: { type: Array, state: true },
         initState: { type: String, state: true },
         groupedVariationOrphanMessage: { type: String, state: true },
+        titleClone: { type: String, state: true },
     };
 
     page = new StoreController(this, Store.page);
