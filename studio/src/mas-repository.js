@@ -7,7 +7,7 @@ import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
+import { debounce, generateUniqueTitle, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -1012,13 +1012,18 @@ export class MasRepository extends LitElement {
     async copyFragment(updatedTitle, osi, tags = []) {
         try {
             this.operation.set(OPERATIONS.CLONE);
+            const effectiveTitle = updatedTitle || this.fragmentInEdit.title;
+            const folderPath = this.fragmentInEdit.path.split('/').slice(0, -1).join('/');
+            const existingTitles = Store.fragments.list.data
+                .get()
+                .map((s) => (s.get?.()?.path?.startsWith(folderPath) ? s.get()?.title : null))
+                .filter(Boolean);
+            const uniqueTitle = generateUniqueTitle(effectiveTitle, existingTitles);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+            const needsSave = uniqueTitle !== result.title || osi;
             if (needsSave) {
-                if (updatedTitle && updatedTitle !== result.title) {
-                    result.title = updatedTitle;
-                }
+                result.title = uniqueTitle;
                 result.fields.forEach((field) => {
                     if (osi && field.name === 'osi') {
                         field.values = [osi];

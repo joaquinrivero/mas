@@ -1092,6 +1092,7 @@ export default class MasFragmentEditor extends LitElement {
         }
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
+        this.titleClone = this.fragment?.title ?? '';
     }
 
     showCreateVariation() {

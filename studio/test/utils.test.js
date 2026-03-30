@@ -1,5 +1,5 @@
 import { expect } from '@open-wc/testing';
-import { generateFieldLink, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
+import { generateFieldLink, generateUniqueTitle, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../src/constants.js';
 
 describe('generateFieldLink', () => {
@@ -66,6 +66,32 @@ describe('generateFieldLink', () => {
 
     it('returns null when fragment is null', () => {
         expect(generateFieldLink(null, '/acom', 'prices')).to.be.null;
+    });
+});
+
+describe('generateUniqueTitle', () => {
+    it('returns base title unchanged when no collision', () => {
+        expect(generateUniqueTitle('my-card', ['other-card'])).to.equal('my-card');
+    });
+
+    it('returns base title unchanged for empty existingTitles', () => {
+        expect(generateUniqueTitle('my-card', [])).to.equal('my-card');
+    });
+
+    it('appends -1 when base title collides', () => {
+        expect(generateUniqueTitle('my-card', ['my-card'])).to.equal('my-card-1');
+    });
+
+    it('appends -2 when base title and -1 both collide', () => {
+        expect(generateUniqueTitle('my-card', ['my-card', 'my-card-1'])).to.equal('my-card-2');
+    });
+
+    it('strips existing trailing suffix before incrementing', () => {
+        expect(generateUniqueTitle('my-card-1', ['my-card-1', 'my-card'])).to.equal('my-card-2');
+    });
+
+    it('accepts a Set as existingTitles', () => {
+        expect(generateUniqueTitle('my-card', new Set(['my-card']))).to.equal('my-card-1');
     });
 });
 

@@ -368,3 +368,24 @@ export function replaceLocaleInPath(fragmentPath, newLocale) {
 export function deepEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
 }
+
+/**
+ * Returns a unique title by appending a numeric suffix when the base title
+ * already exists among `existingTitles`. Strips any trailing `-N` suffix from
+ * `baseTitle` first so that cloning a clone stays tidy (e.g. `card-1` → `card-2`
+ * rather than `card-1-1`).
+ * @param {string} baseTitle - The desired title for the new fragment
+ * @param {string[] | Set<string>} existingTitles - Titles already in scope
+ * @returns {string}
+ */
+export function generateUniqueTitle(baseTitle, existingTitles) {
+    const set = existingTitles instanceof Set ? existingTitles : new Set(existingTitles);
+    const suffixMatch = baseTitle.match(/^(.*)-(\d+)$/);
+    const stem = suffixMatch ? suffixMatch[1] : baseTitle;
+    if (!set.has(baseTitle)) return baseTitle;
+    let counter = 1;
+    while (set.has(`${stem}-${counter}`)) {
+        counter++;
+    }
+    return `${stem}-${counter}`;
+}

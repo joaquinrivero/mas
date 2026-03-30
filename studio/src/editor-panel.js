@@ -624,6 +624,7 @@ export default class EditorPanel extends LitElement {
         }
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
+        this.titleClone = this.fragment?.title ?? '';
     }
 
     /**
