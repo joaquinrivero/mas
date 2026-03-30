@@ -1524,6 +1524,67 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('copyFragment', () => {
+        it('calls generateUniqueFragmentTitle with requestedTitle derived from updatedTitle and parentPath derived from result.path', async () => {
+            const repository = createRepository();
+            const copiedFragment = {
+                id: 'copied-id',
+                path: '/content/dam/mas/sandbox/en_US/cards/cloned-card',
+                title: 'Original Title',
+                fields: [{ name: 'osi', values: [] }],
+            };
+
+            sandbox.stub(repository, 'fragmentInEdit').get(() => ({ id: 'source-id' }));
+            repository.operation = { set: sandbox.stub() };
+            repository.search = { value: { path: undefined } };
+            repository.processError = sandbox.stub();
+
+            repository.aem = {
+                sites: { cf: { fragments: { copy: sandbox.stub().resolves(copiedFragment) } } },
+            };
+
+            const generateStub = sandbox
+                .stub(repository, 'generateUniqueFragmentTitle')
+                .rejects(new Error('stop'));
+
+            await repository.copyFragment('Updated Title');
+
+            const expectedParentPath = '/content/dam/mas/sandbox/en_US/cards';
+            expect(generateStub.calledOnce).to.be.true;
+            expect(generateStub.firstCall.args[0]).to.equal('Updated Title');
+            expect(generateStub.firstCall.args[1]).to.equal(expectedParentPath);
+        });
+
+        it('passes result.title as requestedTitle when updatedTitle equals result.title', async () => {
+            const repository = createRepository();
+            const copiedFragment = {
+                id: 'copied-id',
+                path: '/content/dam/mas/sandbox/en_US/cards/cloned-card',
+                title: 'Same Title',
+                fields: [],
+            };
+
+            sandbox.stub(repository, 'fragmentInEdit').get(() => ({ id: 'source-id' }));
+            repository.operation = { set: sandbox.stub() };
+            repository.search = { value: { path: undefined } };
+            repository.processError = sandbox.stub();
+
+            repository.aem = {
+                sites: { cf: { fragments: { copy: sandbox.stub().resolves(copiedFragment) } } },
+            };
+
+            const generateStub = sandbox
+                .stub(repository, 'generateUniqueFragmentTitle')
+                .rejects(new Error('stop'));
+
+            await repository.copyFragment('Same Title');
+
+            expect(generateStub.calledOnce).to.be.true;
+            expect(generateStub.firstCall.args[0]).to.equal('Same Title');
+            expect(generateStub.firstCall.args[1]).to.equal('/content/dam/mas/sandbox/en_US/cards');
+        });
+    });
+
     describe('generateUniqueFragmentTitle', () => {
         function makeSearchStub(sandbox, titleArrays) {
             return sandbox.stub().callsFake(async function* () {
