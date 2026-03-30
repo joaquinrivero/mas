@@ -1,4 +1,4 @@
-import { SELECTOR_MAS_INLINE_PRICE } from './constants.js';
+import { CTA_MODE, SELECTOR_MAS_INLINE_PRICE } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag } from './utils.js';
 
@@ -680,7 +680,54 @@ function createConsonantButton(
     return button;
 }
 
-export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
+/**
+ * Suppresses non-active CTA types from the card footer based on ctaMode setting.
+ * Authors must set data-plan-type="d2p" or data-plan-type="twp" on CTA anchor/button
+ * elements in AEM content for the swap to identify CTA type.
+ * @param {HTMLElement} footer - The card footer div[slot] element
+ * @param {string} ctaMode - 'default', 'buy-only', or 'trial-only'
+ * @param {string} [learnMoreFallback] - URL injected as Learn More link when no CTAs remain
+ */
+export function applyCTAMode(footer, ctaMode, learnMoreFallback) {
+    if (!ctaMode || ctaMode === CTA_MODE.DEFAULT) return;
+
+    const suppress =
+        ctaMode === CTA_MODE.BUY_ONLY
+            ? 'twp'
+            : ctaMode === CTA_MODE.TRIAL_ONLY
+              ? 'd2p'
+              : null;
+    if (!suppress) return;
+
+    const allCheckoutCtas = [...footer.querySelectorAll('[data-wcs-osi]')];
+    allCheckoutCtas.forEach((el) => {
+        if (el.dataset.planType === suppress) {
+            el.setAttribute('aria-hidden', 'true');
+            el.setAttribute('tabindex', '-1');
+            el.style.display = 'none';
+            el.remove();
+        }
+    });
+
+    const remainingCheckoutCtas = [...footer.querySelectorAll('[data-wcs-osi]')];
+    if (allCheckoutCtas.length > 0 && remainingCheckoutCtas.length === 0) {
+        if (learnMoreFallback) {
+            const a = document.createElement('a');
+            a.href = learnMoreFallback;
+            a.className =
+                'learn-more-fallback spectrum-Button spectrum-Button--secondary spectrum-Button--sizeM';
+            a.innerHTML =
+                '<span class="spectrum-Button-label">Learn More</span>';
+            footer.append(a);
+        } else {
+            console.warn(
+                'ctaMode: no CTA remains and no learnMoreFallback configured',
+            );
+        }
+    }
+}
+
+export function processCTAs(fields, merchCard, aemFragmentMapping, variant, settings = {}) {
     if (fields.ctas) {
         // Process tooltips in CTAs
         fields.ctas = processMnemonicElements(fields.ctas);
@@ -694,6 +741,9 @@ export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
         footer.innerHTML = '';
         footer.append(...ctas);
         merchCard.append(footer);
+        const ctaMode = settings.ctaMode;
+        const learnMoreUrl = fields.learnMoreUrl;
+        if (ctaMode) applyCTAMode(footer, ctaMode, learnMoreUrl);
     }
 }
 
@@ -826,7 +876,7 @@ export async function hydrate(fragment, merchCard) {
         // UptLink construction may fail (customized built-in element timing);
         // must not block remaining hydration steps.
     }
-    processCTAs(fields, merchCard, mapping, variant);
+    processCTAs(fields, merchCard, mapping, variant, settings);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

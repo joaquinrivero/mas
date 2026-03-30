@@ -5,6 +5,7 @@ import {
     getSettings,
     collectSettingEntries,
     clearSettingsCache,
+    SETTING_NAME_DEFINITIONS,
 } from '../../src/fragment/transformers/settings.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import { createResponse } from './mocks/MockFetch.js';
@@ -853,6 +854,62 @@ describe('settings', () => {
                 const result = await settings.process(context);
                 expect(result.body.settings.secureLabel).to.equal('');
             });
+        });
+    });
+
+    describe('ctaMode setting', () => {
+        it('ctaMode is included in SETTING_NAME_DEFINITIONS with editor=enum', () => {
+            const def = SETTING_NAME_DEFINITIONS.find((d) => d.name === 'ctaMode');
+            expect(def).to.exist;
+            expect(def.valueType).to.equal('text');
+            expect(def.editor).to.equal('enum');
+        });
+
+        it('ctaMode is returned in settings payload when fragment contains ctaMode entry', async () => {
+            const stub = sinon.stub(globalThis, 'fetch');
+            const referencesBody = {
+                references: {
+                    ref1: {
+                        value: {
+                            fields: {
+                                name: 'ctaMode',
+                                valuetype: 'text',
+                                textValue: 'buy-only',
+                            },
+                        },
+                    },
+                },
+            };
+            mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody, stub);
+            const result = await getSettings(createContext());
+            expect(result).to.exist;
+            expect(result.ctaMode).to.exist;
+            expect(result.ctaMode.default.name).to.equal('ctaMode');
+            expect(result.ctaMode.default.textValue).to.equal('buy-only');
+            stub.restore();
+            clearSettingsCache();
+        });
+
+        it('ctaMode text value is delivered in fragment.settings via settings transformer', async () => {
+            const context = {
+                surface: DEFAULT_SURFACE,
+                locale: DEFAULT_LOCALE,
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        ctaMode: {
+                            default: {
+                                name: 'ctaMode',
+                                valuetype: 'text',
+                                textValue: 'trial-only',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.ctaMode).to.equal('trial-only');
         });
     });
 });
