@@ -23,6 +23,7 @@ import {
     appendSlot,
     processAddon,
     processTrialBadge,
+    applyCTAMode,
 } from '../src/hydrate.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
@@ -967,5 +968,80 @@ describe('appendSlot', () => {
         const appended = el.querySelector('[slot="test-slot"]');
         expect(appended).to.exist;
         expect(appended.textContent).to.equal('This is a...');
+    });
+});
+
+describe('applyCTAMode', () => {
+    function makeFooter(ctaHtml) {
+        const footer = document.createElement('div');
+        footer.setAttribute('slot', 'footer');
+        footer.innerHTML = ctaHtml;
+        return footer;
+    }
+
+    it('ctaMode=default → no CTAs removed', () => {
+        const footer = makeFooter(
+            '<a data-wcs-osi="a" data-plan-type="d2p">Buy</a>' +
+                '<a data-wcs-osi="b" data-plan-type="twp">Trial</a>',
+        );
+        applyCTAMode(footer, 'default');
+        expect(footer.querySelectorAll('[data-wcs-osi]')).to.have.lengthOf(2);
+    });
+
+    it('ctaMode=undefined → no CTAs removed', () => {
+        const footer = makeFooter(
+            '<a data-wcs-osi="a" data-plan-type="d2p">Buy</a>',
+        );
+        applyCTAMode(footer, undefined);
+        expect(footer.querySelectorAll('[data-wcs-osi]')).to.have.lengthOf(1);
+    });
+
+    it('ctaMode=buy-only, dual CTAs → twp removed, d2p remains', () => {
+        const footer = makeFooter(
+            '<a data-wcs-osi="a" data-plan-type="d2p">Buy</a>' +
+                '<a data-wcs-osi="b" data-plan-type="twp">Trial</a>',
+        );
+        applyCTAMode(footer, 'buy-only');
+        const remaining = footer.querySelectorAll('[data-wcs-osi]');
+        expect(remaining).to.have.lengthOf(1);
+        expect(remaining[0].dataset.planType).to.equal('d2p');
+    });
+
+    it('ctaMode=trial-only, dual CTAs → d2p removed, twp remains', () => {
+        const footer = makeFooter(
+            '<a data-wcs-osi="a" data-plan-type="d2p">Buy</a>' +
+                '<a data-wcs-osi="b" data-plan-type="twp">Trial</a>',
+        );
+        applyCTAMode(footer, 'trial-only');
+        const remaining = footer.querySelectorAll('[data-wcs-osi]');
+        expect(remaining).to.have.lengthOf(1);
+        expect(remaining[0].dataset.planType).to.equal('twp');
+    });
+
+    it('ctaMode=buy-only, single twp CTA with learnMoreUrl → CTA removed, Learn More link injected', () => {
+        const footer = makeFooter(
+            '<a data-wcs-osi="b" data-plan-type="twp">Trial</a>',
+        );
+        applyCTAMode(footer, 'buy-only', 'https://adobe.com/learn-more');
+        expect(footer.querySelectorAll('[data-wcs-osi]')).to.have.lengthOf(0);
+        const learnMore = footer.querySelector('.learn-more-fallback');
+        expect(learnMore).to.exist;
+        expect(learnMore.getAttribute('href')).to.equal(
+            'https://adobe.com/learn-more',
+        );
+        expect(learnMore.textContent.trim()).to.equal('Learn More');
+    });
+
+    it('ctaMode=buy-only, single twp CTA, no learnMoreUrl → CTA removed, warning logged', () => {
+        const footer = makeFooter(
+            '<a data-wcs-osi="b" data-plan-type="twp">Trial</a>',
+        );
+        const warnStub = sinon.stub(console, 'warn');
+        applyCTAMode(footer, 'buy-only');
+        expect(footer.querySelectorAll('[data-wcs-osi]')).to.have.lengthOf(0);
+        expect(footer.querySelector('.learn-more-fallback')).to.not.exist;
+        expect(warnStub.calledOnce).to.be.true;
+        expect(warnStub.firstCall.args[0]).to.include('ctaMode');
+        warnStub.restore();
     });
 });

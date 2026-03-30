@@ -386,6 +386,7 @@ class MasSettings extends LitElement {
         if (this.dialog?.type === 'override') {
             if (this.settingDefinition?.editor === 'quantity-select') return 'quantity-select';
             if (this.settingDefinition?.editor === 'addon') return 'addon';
+            if (this.settingDefinition?.editor === 'enum') return 'enum';
             return this.formValueType === 'boolean' ? 'boolean' : 'text';
         }
         if (this.settingDefinition?.editor) return this.settingDefinition.editor;
@@ -1033,6 +1034,23 @@ class MasSettings extends LitElement {
                           `
                         : nothing}
                 </div>
+            `;
+        }
+        if (this.valueEditorType === 'enum') {
+            const options = this.settingDefinition?.options ?? [];
+            return html`
+                <sp-picker
+                    label="CTA Mode"
+                    value=${this.form.value || options[0] || ''}
+                    @change=${(event) => this.#setFormField('value', event.target.value)}
+                >
+                    ${options.map(
+                        (opt) =>
+                            html`<sp-menu-item value=${opt}
+                                >${opt}</sp-menu-item
+                            >`,
+                    )}
+                </sp-picker>
             `;
         }
         if (!this.valueEditorType) return nothing;

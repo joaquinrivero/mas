@@ -15,6 +15,7 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'displayAnnual', valueType: 'boolean' },
     { name: 'displayPlanType', valueType: 'boolean', propertyName: 'showPlanType' },
     { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
+    { name: 'ctaMode', valueType: 'text', editor: 'enum', options: ['default', 'buy-only', 'trial-only'] },
 ];
 
 export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
