@@ -8,7 +8,7 @@ import StoreController from './reactivity/store-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
+import { extractLocaleFromPath, generateCodeToUse, generateUniqueTitle, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
@@ -1090,6 +1090,11 @@ export default class MasFragmentEditor extends LitElement {
             const confirmed = await this.promptDiscardChanges();
             if (!confirmed) return;
         }
+        const existingTitles = Store.fragments.list.data
+            .get()
+            .map((s) => s.get()?.title)
+            .filter(Boolean);
+        this.titleClone = generateUniqueTitle(this.fragment.title, existingTitles);
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
     }
@@ -1248,7 +1253,7 @@ export default class MasFragmentEditor extends LitElement {
                     placeholder="new fragment title"
                     id="new-fragment-title"
                     data-field="title"
-                    value="${this.fragment.title}"
+                    value="${this.titleClone}"
                     @input=${this.updateCloneFragmentInternal}
                 ></sp-textfield>
                 ${this.fragment.model.path === CARD_MODEL_PATH

@@ -368,3 +368,15 @@ export function replaceLocaleInPath(fragmentPath, newLocale) {
 export function deepEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
 }
+
+export function generateUniqueTitle(baseTitle, existingTitles) {
+    const titles = new Set(existingTitles);
+    if (!titles.has(baseTitle)) return baseTitle;
+    const base = baseTitle.replace(/-\d+$/, '');
+    let n = 1;
+    let candidate;
+    do {
+        candidate = `${base}-${n++}`;
+    } while (titles.has(candidate));
+    return candidate;
+}
