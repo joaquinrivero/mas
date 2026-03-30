@@ -1016,7 +1016,7 @@ export class MasRepository extends LitElement {
             const folderPath = this.fragmentInEdit.path.split('/').slice(0, -1).join('/');
             const existingTitles = Store.fragments.list.data
                 .get()
-                .map((s) => (s.get?.()?.path?.startsWith(folderPath) ? s.get()?.title : null))
+                .map((s) => (s.get?.()?.path?.split('/').slice(0, -1).join('/') === folderPath ? s.get()?.title : null))
                 .filter(Boolean);
             const uniqueTitle = generateUniqueTitle(effectiveTitle, existingTitles);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
