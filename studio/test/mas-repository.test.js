@@ -1523,4 +1523,48 @@ describe('MasRepository dictionary helpers', () => {
             expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
         });
     });
+
+    describe('generateUniqueFragmentTitle', () => {
+        let sandbox;
+        let repository;
+
+        beforeEach(() => {
+            sandbox = sinon.createSandbox();
+            repository = Object.create(MasRepository.prototype);
+        });
+
+        afterEach(() => {
+            sandbox.restore();
+            Store.fragments.list.data.set([]);
+        });
+
+        function makeStore(title) {
+            return { get: () => ({ title }) };
+        }
+
+        it('returns the base title unchanged when no collision exists', () => {
+            Store.fragments.list.data.set([makeStore('other-card')]);
+            expect(repository.generateUniqueFragmentTitle('lucy-card')).to.equal('lucy-card');
+        });
+
+        it('appends -1 when the base title already exists', () => {
+            Store.fragments.list.data.set([makeStore('lucy-card')]);
+            expect(repository.generateUniqueFragmentTitle('lucy-card')).to.equal('lucy-card-1');
+        });
+
+        it('increments suffix beyond -1 when -1 also exists', () => {
+            Store.fragments.list.data.set([makeStore('lucy-card'), makeStore('lucy-card-1')]);
+            expect(repository.generateUniqueFragmentTitle('lucy-card')).to.equal('lucy-card-2');
+        });
+
+        it('strips existing suffix and increments when cloning a -N card', () => {
+            Store.fragments.list.data.set([makeStore('lucy-card'), makeStore('lucy-card-1')]);
+            expect(repository.generateUniqueFragmentTitle('lucy-card-1')).to.equal('lucy-card-2');
+        });
+
+        it('handles an empty fragment list gracefully', () => {
+            Store.fragments.list.data.set([]);
+            expect(repository.generateUniqueFragmentTitle('my-card')).to.equal('my-card');
+        });
+    });
 });

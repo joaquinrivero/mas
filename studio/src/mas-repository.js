@@ -1007,6 +1007,38 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Returns a unique fragment title by appending a numeric suffix if a fragment
+     * with the same title already exists in the current in-memory list.
+     * Uniqueness is scoped to the currently-loaded tag path (whatever is in Store.fragments.list.data).
+     *
+     * Examples:
+     *   'lucy-card'   (exists) → 'lucy-card-1'
+     *   'lucy-card-1' (exists, 'lucy-card' also exists) → 'lucy-card-2'
+     *
+     * @param {string} baseTitle - The desired title (typically the title of the fragment being cloned)
+     * @returns {string} A title guaranteed not to collide with any title in the in-memory list
+     */
+    generateUniqueFragmentTitle(baseTitle) {
+        const existingTitles = new Set(
+            (Store.fragments.list.data.get() || [])
+                .map((store) => store.get()?.title)
+                .filter(Boolean),
+        );
+
+        if (!existingTitles.has(baseTitle)) return baseTitle;
+
+        // Strip trailing -N suffix to get the root title
+        const suffixMatch = baseTitle.match(/^(.*)-(\d+)$/);
+        const rootTitle = suffixMatch ? suffixMatch[1] : baseTitle;
+
+        let n = 1;
+        while (existingTitles.has(`${rootTitle}-${n}`)) {
+            n += 1;
+        }
+        return `${rootTitle}-${n}`;
+    }
+
+    /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async copyFragment(updatedTitle, osi, tags = []) {
