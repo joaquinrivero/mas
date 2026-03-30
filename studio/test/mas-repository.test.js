@@ -1525,16 +1525,13 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('generateUniqueFragmentTitle', () => {
-        let sandbox;
         let repository;
 
         beforeEach(() => {
-            sandbox = sinon.createSandbox();
             repository = Object.create(MasRepository.prototype);
         });
 
         afterEach(() => {
-            sandbox.restore();
             Store.fragments.list.data.set([]);
         });
 
