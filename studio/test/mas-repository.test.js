@@ -1523,4 +1523,66 @@ describe('MasRepository dictionary helpers', () => {
             expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
         });
     });
+
+    describe('generateUniqueFragmentTitle', () => {
+        function makeSearchStub(sandbox, titleArrays) {
+            return sandbox.stub().callsFake(async function* () {
+                for (const titles of titleArrays) {
+                    yield titles.map((title) => ({ title }));
+                }
+            });
+        }
+
+        it('returns the base title when no duplicate exists', async () => {
+            const repository = createRepository();
+            repository.aem = {
+                sites: { cf: { fragments: { search: makeSearchStub(sandbox, [['other-card']]) } } },
+            };
+            const result = await repository.generateUniqueFragmentTitle('my-card', '/content/dam/mas/folder');
+            expect(result).to.equal('my-card');
+        });
+
+        it('appends -1 when base title already exists', async () => {
+            const repository = createRepository();
+            repository.aem = {
+                sites: { cf: { fragments: { search: makeSearchStub(sandbox, [['my-card']]) } } },
+            };
+            const result = await repository.generateUniqueFragmentTitle('my-card', '/content/dam/mas/folder');
+            expect(result).to.equal('my-card-1');
+        });
+
+        it('increments to -2 when -1 already exists', async () => {
+            const repository = createRepository();
+            repository.aem = {
+                sites: { cf: { fragments: { search: makeSearchStub(sandbox, [['my-card', 'my-card-1']]) } } },
+            };
+            const result = await repository.generateUniqueFragmentTitle('my-card', '/content/dam/mas/folder');
+            expect(result).to.equal('my-card-2');
+        });
+
+        it('strips existing suffix before incrementing', async () => {
+            const repository = createRepository();
+            repository.aem = {
+                sites: { cf: { fragments: { search: makeSearchStub(sandbox, [['my-card', 'my-card-1']]) } } },
+            };
+            // Input already has a -1 suffix; should strip it and produce my-card-2
+            const result = await repository.generateUniqueFragmentTitle('my-card-1', '/content/dam/mas/folder');
+            expect(result).to.equal('my-card-2');
+        });
+
+        it('returns base title when search fails', async () => {
+            const repository = createRepository();
+            repository.aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            search: sandbox.stub().throws(new Error('network error')),
+                        },
+                    },
+                },
+            };
+            const result = await repository.generateUniqueFragmentTitle('my-card', '/content/dam/mas/folder');
+            expect(result).to.equal('my-card');
+        });
+    });
 });

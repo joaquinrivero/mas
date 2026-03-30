@@ -1006,6 +1006,35 @@ export class MasRepository extends LitElement {
         );
     }
 
+    async generateUniqueFragmentTitle(baseTitle, path) {
+        // Strip existing numeric suffix: "card-2" -> "card"
+        const suffixMatch = baseTitle.match(/^(.*)-(\d+)$/);
+        const rootTitle = suffixMatch ? suffixMatch[1] : baseTitle;
+
+        // Collect all fragment titles at the given path
+        const existingTitles = new Set();
+        try {
+            const gen = this.aem.sites.cf.fragments.search({ path, query: rootTitle });
+            for await (const items of gen) {
+                for (const item of items) {
+                    existingTitles.add(item.title);
+                }
+            }
+        } catch {
+            return baseTitle; // Search failure: return original, do not block clone
+        }
+
+        if (!existingTitles.has(baseTitle)) return baseTitle;
+
+        let n = 1;
+        while (n <= 99) {
+            const candidate = `${rootTitle}-${n}`;
+            if (!existingTitles.has(candidate)) return candidate;
+            n++;
+        }
+        return `${rootTitle}-${n}`;
+    }
+
     /**
      * @returns {Promise<boolean>} Whether or not it was successful
      */
@@ -1014,11 +1043,12 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+            const parentPath = result.path.split('/').slice(0, -1).join('/');
+            const requestedTitle = updatedTitle && updatedTitle !== result.title ? updatedTitle : result.title;
+            const uniqueTitle = await this.generateUniqueFragmentTitle(requestedTitle, parentPath);
+            const needsSave = uniqueTitle !== result.title || osi;
             if (needsSave) {
-                if (updatedTitle && updatedTitle !== result.title) {
-                    result.title = updatedTitle;
-                }
+                result.title = uniqueTitle;
                 result.fields.forEach((field) => {
                     if (osi && field.name === 'osi') {
                         field.values = [osi];
