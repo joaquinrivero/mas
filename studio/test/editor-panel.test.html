@@ -131,6 +131,64 @@
                         expect(editorPanel.openVersionHistory).to.be.a('function');
                         expect(editorPanel.fragment.id).to.equal('12345678-1234-1234-1234-123456789012');
                     });
+
+                    describe('#generateUniqueTitle', () => {
+                        function makeSiblingStore(title, path) {
+                            return { get: () => ({ title, path }) };
+                        }
+
+                        beforeEach(() => {
+                            // fragment path is /content/mas/collections/all — parent: /content/mas/collections
+                            Store.fragments.list.data.set([]);
+                        });
+
+                        it('returns base-1 when no sibling titles conflict', () => {
+                            Store.fragments.list.data.set([
+                                makeSiblingStore('other-card', '/content/mas/collections/other'),
+                            ]);
+                            const result = editorPanel.showClone();
+                            // showClone sets titleClone via #generateUniqueTitle
+                            return result.then(() => {
+                                expect(editorPanel.titleClone).to.equal('All-1');
+                            });
+                        });
+
+                        it('increments suffix when base-1 already exists in the same folder', async () => {
+                            Store.fragments.list.data.set([
+                                makeSiblingStore('All-1', '/content/mas/collections/all-1'),
+                            ]);
+                            await editorPanel.showClone();
+                            expect(editorPanel.titleClone).to.equal('All-2');
+                        });
+
+                        it('strips existing trailing suffix before incrementing', async () => {
+                            // Fragment title is "All" (no suffix), but "All-1" exists
+                            Store.fragments.list.data.set([
+                                makeSiblingStore('All-1', '/content/mas/collections/all-1'),
+                                makeSiblingStore('All-2', '/content/mas/collections/all-2'),
+                            ]);
+                            await editorPanel.showClone();
+                            expect(editorPanel.titleClone).to.equal('All-3');
+                        });
+
+                        it('does not count siblings in a different parent folder', async () => {
+                            // /content/mas/cards/all is a different parent than /content/mas/collections
+                            Store.fragments.list.data.set([
+                                makeSiblingStore('All-1', '/content/mas/cards/all-1'),
+                            ]);
+                            await editorPanel.showClone();
+                            expect(editorPanel.titleClone).to.equal('All-1');
+                        });
+
+                        it('clone dialog input shows the generated unique title', async () => {
+                            Store.fragments.list.data.set([]);
+                            await editorPanel.showClone();
+                            await editorPanel.updateComplete;
+                            const input = editorPanel.shadowRoot.querySelector('#new-fragment-title');
+                            expect(input).to.exist;
+                            expect(input.value).to.equal('All-1');
+                        });
+                    });
                 });
             });
         </script>

@@ -558,6 +558,32 @@ export default class EditorPanel extends LitElement {
         this.titleClone = event.target.value;
     }
 
+    #generateUniqueTitle(baseTitle) {
+        const fragmentList = Store.fragments.list.data.get() ?? [];
+        const parentPath = this.fragment.path.split('/').slice(0, -1).join('/');
+
+        const existingTitles = new Set(
+            fragmentList
+                .map((store) => store.get())
+                .filter(
+                    (f) =>
+                        f &&
+                        f.path &&
+                        f.path.startsWith(parentPath + '/') &&
+                        !f.path.slice(parentPath.length + 1).includes('/'),
+                )
+                .map((f) => f.title),
+        );
+
+        // Strip existing trailing numeric suffix so cloning lucy-card-1 → lucy-card-2
+        const base = baseTitle.replace(/-\d+$/, '');
+        let n = 1;
+        while (existingTitles.has(`${base}-${n}`)) {
+            n++;
+        }
+        return `${base}-${n}`;
+    }
+
     updateFragment({ target, detail, values }) {
         const fieldName = target.dataset.field;
         let value = values;
@@ -622,6 +648,7 @@ export default class EditorPanel extends LitElement {
             const confirmed = await this.promptDiscardChanges();
             if (!confirmed) return;
         }
+        this.titleClone = this.#generateUniqueTitle(this.fragment.title);
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
     }
@@ -897,7 +924,7 @@ export default class EditorPanel extends LitElement {
                     placeholder="new fragment title"
                     id="new-fragment-title"
                     data-field="title"
-                    value="${this.fragment.title}"
+                    value="${this.titleClone}"
                     @input=${this.#updateCloneFragmentInternal}
                 ></sp-textfield>
                 ${this.fragment.model.path === CARD_MODEL_PATH
