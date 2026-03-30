@@ -1516,16 +1516,14 @@ describe('MasRepository dictionary helpers', () => {
             repository.operation = { set: sandbox.stub() };
             repository.search = { value: { path: 'acom/en_US' } };
 
-            // stub downstream methods to keep the test focused on title logic
+            // stub processError so caught errors don't surface as test noise
             sandbox.stub(repository, 'processError');
-            sandbox.stub(repository, '_MasRepository__addToCache').resolves({ id: 'new-id' });
 
             return repository;
         }
 
         it('deduplicates title when it already exists in the folder', async () => {
             const repo = buildRepository(['lucy-card'], 'lucy-card');
-            // Patch #addToCache and downstream via direct method stub
             repo.aem.sites.cf.fragments.save = sandbox.stub().callsFake(async (f) => ({ ...f }));
             // We can't directly call the private method; invoke copyFragment and
             // check what title was set on the result passed to save.
@@ -1535,14 +1533,9 @@ describe('MasRepository dictionary helpers', () => {
                 /* navigation or cache errors are expected in unit context */
             }
             const saveCall = repo.aem.sites.cf.fragments.save;
-            if (saveCall.called) {
-                const savedFragment = saveCall.firstCall.args[0];
-                expect(savedFragment.title).to.equal('lucy-card-1');
-            } else {
-                // save was not called means uniqueTitle === result.title; that means
-                // deduplication didn't trigger — which would be a bug.
-                expect.fail('save should have been called with the deduplicated title');
-            }
+            expect(saveCall.called).to.be.true;
+            const savedFragment = saveCall.firstCall.args[0];
+            expect(savedFragment.title).to.equal('lucy-card-1');
         });
 
         it('uses title unchanged when it does not exist in the folder', async () => {
