@@ -233,6 +233,38 @@ export class MasRepository extends LitElement {
         return fragments;
     }
 
+    /**
+     * Returns a title that does not conflict with any fragment title
+     * currently loaded in the fragment list store (scoped to current path).
+     *
+     * - "lucy-card"   → "lucy-card-1" if "lucy-card" already exists
+     * - "lucy-card-1" → "lucy-card-2" if "lucy-card-1" already exists
+     *
+     * @param {string} proposedTitle
+     * @returns {string} unique title
+     */
+    generateUniqueTitle(proposedTitle) {
+        const existingTitles = new Set(
+            (Store.fragments.list.data.get() || [])
+                .map((store) => store?.get?.()?.title)
+                .filter(Boolean),
+        );
+
+        if (!existingTitles.has(proposedTitle)) return proposedTitle;
+
+        // Strip trailing -N suffix to find the base
+        const suffixMatch = /^(.*)-(\d+)$/.exec(proposedTitle);
+        const base = suffixMatch ? suffixMatch[1] : proposedTitle;
+
+        let counter = 1;
+        let candidate = `${base}-${counter}`;
+        while (existingTitles.has(candidate)) {
+            counter += 1;
+            candidate = `${base}-${counter}`;
+        }
+        return candidate;
+    }
+
     skipVariant(variants, item) {
         if (Fragment.isGroupedVariationPath(item.path)) return true;
         const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];

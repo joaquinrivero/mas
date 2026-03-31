@@ -1523,4 +1523,59 @@ describe('MasRepository dictionary helpers', () => {
             expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
         });
     });
+
+    describe('generateUniqueTitle', () => {
+        let repository;
+
+        beforeEach(() => {
+            repository = createRepository();
+        });
+
+        const makeFragmentStore = (title) => ({ get: () => ({ title }) });
+
+        it('returns proposed title unchanged when no conflict exists', () => {
+            sandbox.stub(Store.fragments.list.data, 'get').returns([
+                makeFragmentStore('other-card'),
+            ]);
+            expect(repository.generateUniqueTitle('lucy-card')).to.equal('lucy-card');
+        });
+
+        it('appends -1 when proposed title is already taken', () => {
+            sandbox.stub(Store.fragments.list.data, 'get').returns([
+                makeFragmentStore('lucy-card'),
+            ]);
+            expect(repository.generateUniqueTitle('lucy-card')).to.equal('lucy-card-1');
+        });
+
+        it('appends -2 when proposed title and -1 are both taken', () => {
+            sandbox.stub(Store.fragments.list.data, 'get').returns([
+                makeFragmentStore('lucy-card'),
+                makeFragmentStore('lucy-card-1'),
+            ]);
+            expect(repository.generateUniqueTitle('lucy-card')).to.equal('lucy-card-2');
+        });
+
+        it('strips existing -N suffix before incrementing', () => {
+            sandbox.stub(Store.fragments.list.data, 'get').returns([
+                makeFragmentStore('lucy-card'),
+                makeFragmentStore('lucy-card-1'),
+            ]);
+            expect(repository.generateUniqueTitle('lucy-card-1')).to.equal('lucy-card-2');
+        });
+
+        it('increments past multiple consecutive suffixes', () => {
+            sandbox.stub(Store.fragments.list.data, 'get').returns([
+                makeFragmentStore('lucy-card'),
+                makeFragmentStore('lucy-card-1'),
+                makeFragmentStore('lucy-card-2'),
+                makeFragmentStore('lucy-card-3'),
+            ]);
+            expect(repository.generateUniqueTitle('lucy-card-2')).to.equal('lucy-card-4');
+        });
+
+        it('handles empty fragment list', () => {
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+            expect(repository.generateUniqueTitle('lucy-card')).to.equal('lucy-card');
+        });
+    });
 });

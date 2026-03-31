@@ -811,10 +811,13 @@ describe('MasFragmentEditor', () => {
 
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
-            mockRepo = { copyFragment: sandbox.stub().resolves() };
+            mockRepo = {
+                copyFragment: sandbox.stub().resolves(),
+                generateUniqueTitle: sandbox.stub().returnsArg(0),
+            };
             sandbox.stub(el, 'repository').get(() => mockRepo);
             el.inEdit.value = {
-                get: () => ({ id: 'test-id', model: { path: CARD_MODEL_PATH }, getFieldValue: () => 'osi' }),
+                get: () => ({ id: 'test-id', title: 'lucy-card', model: { path: CARD_MODEL_PATH }, getFieldValue: () => 'osi' }),
             };
         });
 
@@ -823,6 +826,21 @@ describe('MasFragmentEditor', () => {
             await el.confirmClone();
             expect(mockRepo.copyFragment.calledWith('New Title')).to.be.true;
             expect(el.showCloneDialog).to.be.false;
+        });
+
+        it('calls generateUniqueTitle and sets titleClone on showClone', async () => {
+            mockRepo.generateUniqueTitle.returns('lucy-card-1');
+            sandbox.stub(Store.editor, 'hasChanges').get(() => false);
+            await el.showClone();
+            expect(mockRepo.generateUniqueTitle.calledWith('lucy-card')).to.be.true;
+            expect(el.titleClone).to.equal('lucy-card-1');
+            expect(el.showCloneDialog).to.be.true;
+        });
+
+        it('confirmClone passes pre-set titleClone to copyFragment', async () => {
+            el.titleClone = 'lucy-card-1';
+            await el.confirmClone();
+            expect(mockRepo.copyFragment.calledWith('lucy-card-1')).to.be.true;
         });
     });
 

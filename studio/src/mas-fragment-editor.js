@@ -1090,6 +1090,7 @@ export default class MasFragmentEditor extends LitElement {
             const confirmed = await this.promptDiscardChanges();
             if (!confirmed) return;
         }
+        this.titleClone = this.repository.generateUniqueTitle(this.fragment.title);
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
     }
@@ -1248,7 +1249,7 @@ export default class MasFragmentEditor extends LitElement {
                     placeholder="new fragment title"
                     id="new-fragment-title"
                     data-field="title"
-                    value="${this.fragment.title}"
+                    value="${this.titleClone || this.fragment.title}"
                     @input=${this.updateCloneFragmentInternal}
                 ></sp-textfield>
                 ${this.fragment.model.path === CARD_MODEL_PATH
