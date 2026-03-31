@@ -813,9 +813,9 @@ describe('MasFragmentEditor', () => {
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
                 copyFragment: sandbox.stub().resolves(),
-                generateUniqueTitle: sandbox.stub().returnsArg(0),
+                generateUniqueTitle: sandbox.stub().callsFake((t) => t),
             };
-            sandbox.stub(el, 'repository').get(() => mockRepo);
+            Object.defineProperty(el, 'repository', { get: () => mockRepo, configurable: true });
             el.inEdit.value = {
                 get: () => ({ id: 'test-id', title: 'lucy-card', model: { path: CARD_MODEL_PATH }, getFieldValue: () => 'osi' }),
             };
@@ -878,6 +878,8 @@ describe('MasFragmentEditor', () => {
             el.inEdit.value = { get: () => fragment };
             // Mock Store.editor
             sandbox.stub(Store.editor, 'hasChanges').get(() => false);
+            const mockRepo = { generateUniqueTitle: sandbox.stub().returnsArg(0) };
+            sandbox.stub(el, 'repository').get(() => mockRepo);
         });
 
         it('shows and cancels delete dialog', () => {
