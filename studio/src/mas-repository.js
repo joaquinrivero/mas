@@ -78,6 +78,15 @@ function isUUID(str) {
     return uuidRegex.test(str);
 }
 
+function buildUniqueTitle(candidateTitle, existingTitles) {
+    if (!existingTitles.has(candidateTitle)) return candidateTitle;
+    const match = candidateTitle.match(/^(.*)-(\d+)$/);
+    const base = match ? match[1] : candidateTitle;
+    let counter = 1;
+    while (existingTitles.has(`${base}-${counter}`)) counter++;
+    return `${base}-${counter}`;
+}
+
 export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },
@@ -231,6 +240,28 @@ export class MasRepository extends LitElement {
             }
         }
         return fragments;
+    }
+
+    async getExistingTitlesInPath(parentPath) {
+        const titles = new Set();
+        const fragmentsInStore = Store.fragments.list.data.get() || [];
+        for (const store of fragmentsInStore) {
+            const fragment = store.get();
+            if (!fragment?.path) continue;
+            const fp = fragment.path.substring(0, fragment.path.lastIndexOf('/'));
+            if (fp === parentPath) titles.add(fragment.title);
+        }
+        try {
+            const searchGen = this.aem.sites.cf.fragments.search({ path: parentPath });
+            for await (const items of searchGen) {
+                for (const item of items) {
+                    if (item?.title) titles.add(item.title);
+                }
+            }
+        } catch {
+            // Degrade gracefully: in-memory results are still used
+        }
+        return titles;
     }
 
     skipVariant(variants, item) {
@@ -1014,7 +1045,21 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+
+            // Auto-deduplicate the title when no custom title was provided by the user
+            if (!updatedTitle) {
+                const fragmentPath = this.fragmentInEdit?.path || '';
+                const parentPath = fragmentPath.substring(0, fragmentPath.lastIndexOf('/'));
+                if (parentPath) {
+                    const existingTitles = await this.getExistingTitlesInPath(parentPath);
+                    const uniqueTitle = buildUniqueTitle(result.title, existingTitles);
+                    if (uniqueTitle !== result.title) {
+                        result.title = uniqueTitle;
+                    }
+                }
+            }
+
+            const needsSave = (updatedTitle && updatedTitle !== result.title) || (result.title !== this.fragmentInEdit?.title) || osi;
             if (needsSave) {
                 if (updatedTitle && updatedTitle !== result.title) {
                     result.title = updatedTitle;
