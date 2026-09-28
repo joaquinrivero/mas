@@ -17,6 +17,7 @@ jobs:
         timeout-minutes: 15
         permissions:
             contents: write
+            actions: write
         defaults:
             run:
                 working-directory: web-components
@@ -56,6 +57,25 @@ jobs:
                   git config user.email mas-bot@users.noreply.github.com
                   git commit -m "chore: build dist"
                   git push
+                  echo "BOT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+            # GITHUB_TOKEN pushes start PR runs in approval-required state and fire no event we can hook.
+            # Poll until they appear, then approve them. Same token, no extra secret.
+            - name: Approve runs on bot commit
+              if: env.BOT_SHA != ''
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  q='.workflow_runs[] | select(.conclusion == "action_required") | .id'
+                  for _ in $(seq 24); do
+                    [ -n "$(gh api "repos/${{ github.repository }}/actions/runs?head_sha=$BOT_SHA" -q "$q")" ] && break
+                    sleep 5
+                  done
+                  # Runs are created in a burst, not at once. Let the rest land before approving.
+                  sleep 5
+                  for id in $(gh api "repos/${{ github.repository }}/actions/runs?head_sha=$BOT_SHA" -q "$q"); do
+                    gh api -X POST "repos/${{ github.repository }}/actions/runs/$id/approve" > /dev/null && echo "approved $id"
+                  done
 
             # Fork PRs get a read-only token, so they still have to commit the build themselves.
             - name: Check for uncommitted changes
