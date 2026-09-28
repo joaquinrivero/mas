@@ -17,7 +17,6 @@ jobs:
         timeout-minutes: 15
         permissions:
             contents: write
-            actions: write
         defaults:
             run:
                 working-directory: web-components
@@ -57,18 +56,6 @@ jobs:
                   git config user.email mas-bot@users.noreply.github.com
                   git commit -m "chore: build dist"
                   git push
-                  echo "BOT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-
-            # GITHUB_TOKEN pushes start PR runs in approval-required state. Try approving them with the same token.
-            - name: Approve runs on bot commit
-              if: env.BOT_SHA != ''
-              env:
-                  GH_TOKEN: ${{ github.token }}
-              run: |
-                  sleep 20
-                  for id in $(gh api "repos/${{ github.repository }}/actions/runs?head_sha=$BOT_SHA" -q '.workflow_runs[] | select(.conclusion == "action_required") | .id'); do
-                    gh api -X POST "repos/${{ github.repository }}/actions/runs/$id/approve" && echo "approved $id"
-                  done
 
             # Fork PRs get a read-only token, so they still have to commit the build themselves.
             - name: Check for uncommitted changes
