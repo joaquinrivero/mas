@@ -15,6 +15,8 @@ jobs:
         name: Build and Test Web Components
         runs-on: ubuntu-latest
         timeout-minutes: 15
+        permissions:
+            contents: write
         defaults:
             run:
                 working-directory: web-components
@@ -25,6 +27,11 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+              with:
+                  repository: ${{ github.event.pull_request.head.repo.full_name }}
+                  ref: ${{ github.head_ref }}
+                  # GITHUB_TOKEN pushes don't trigger workflows, so required checks never run on the bot commit.
+                  token: ${{ secrets.DIST_BOT_TOKEN || github.token }}
 
             - name: Set up Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4
@@ -40,7 +47,19 @@ jobs:
             - name: Run build
               run: npm run build
 
+            - name: Commit build output
+              if: github.event.pull_request.head.repo.full_name == github.repository
+              run: |
+                  git add -A dist docs
+                  git diff --cached --quiet && exit 0
+                  git config user.name mas-bot
+                  git config user.email mas-bot@users.noreply.github.com
+                  git commit -m "chore: build dist"
+                  git push
+
+            # Fork PRs get a read-only token, so they still have to commit the build themselves.
             - name: Check for uncommitted changes
+              if: github.event.pull_request.head.repo.full_name != github.repository
               run: |
                   if [ -n "$(git status --porcelain)" ]; then
                     echo "❌ Build generated changes that are not committed:"
