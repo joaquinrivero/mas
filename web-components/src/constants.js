@@ -32,13 +32,13 @@ export const Term = Object.freeze({
  * @see https://git.corp.adobe.com/wcms/team/discussions/27
  */
 export const NAMESPACE = 'merch';
-export const MERCH_CARD_LOAD_TIMEOUT = 20001;
+export const MERCH_CARD_LOAD_TIMEOUT = 20006;
 /**
  * This CSS class name is used to:
  * - show only selected offer on a card connected to a subscription panel
  * - TBD
  */
-export const CLASS_NAME_HIDDEN = 'hidden';
+export const CLASS_NAME_HIDDEN = 'is-hidden';
 /**
  * Event type dispatched by the commenrce service whenever it is ready.
  * Should be in sync with `packages/commerce/src/constants.js`.
