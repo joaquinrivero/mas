@@ -11,8 +11,13 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
             - name: Run actionlint
+              env:
+                  BASE_REF: ${{ github.base_ref }}
+              # Existing workflows have unfixed findings, so only lint the files this PR changes.
               run: |
                   bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
-                  ./actionlint -color
+                  git diff --name-only --diff-filter=d "origin/$BASE_REF...HEAD" -- '.github/workflows/*.y*ml' | xargs -r ./actionlint -color

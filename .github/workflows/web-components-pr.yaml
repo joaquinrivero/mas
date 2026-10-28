@@ -68,7 +68,8 @@ jobs:
             - name: Commit build output
               if: github.event.pull_request.head.repo.full_name == github.repository
               run: |
-                  git add -A dist docs
+                  git add -A dist
+                  git add -u docs
                   git diff --cached --quiet && exit 0
                   git config user.name mas-bot
                   git config user.email mas-bot@users.noreply.github.com
