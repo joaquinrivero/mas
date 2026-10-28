@@ -35,6 +35,9 @@ jobs:
         permissions:
             contents: write
             actions: write
+        env:
+            # Fork PRs get a read-only token, so only same-repo PRs can have the bot commit the build.
+            SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         defaults:
             run:
                 working-directory: web-components
@@ -66,7 +69,8 @@ jobs:
               run: npm run build
 
             - name: Commit build output
-              if: github.event.pull_request.head.repo.full_name == github.repository
+              id: dist
+              if: env.SAME_REPO == 'true'
               run: |
                   git add -A dist
                   git add -u docs
@@ -75,14 +79,15 @@ jobs:
                   git config user.email mas-bot@users.noreply.github.com
                   git commit -m "chore: build dist"
                   git push
-                  echo "BOT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+                  echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
             # GITHUB_TOKEN pushes start PR runs in approval-required state and fire no event we can hook.
             # Poll until they appear, then approve them. Same token, no extra secret.
             - name: Approve runs on bot commit
-              if: env.BOT_SHA != ''
+              if: steps.dist.outputs.sha != ''
               env:
                   GH_TOKEN: ${{ github.token }}
+                  BOT_SHA: ${{ steps.dist.outputs.sha }}
               run: |
                   q='.workflow_runs[] | select(.conclusion == "action_required") | .id'
                   for _ in $(seq 24); do
@@ -95,9 +100,9 @@ jobs:
                     gh api -X POST "repos/${{ github.repository }}/actions/runs/$id/approve" > /dev/null && echo "approved $id"
                   done
 
-            # Fork PRs get a read-only token, so they still have to commit the build themselves.
+            # Fork PRs still have to commit the build themselves.
             - name: Check for uncommitted changes
-              if: github.event.pull_request.head.repo.full_name != github.repository
+              if: env.SAME_REPO != 'true'
               run: |
                   if [ -n "$(git status --porcelain)" ]; then
                     echo "❌ Build generated changes that are not committed:"
