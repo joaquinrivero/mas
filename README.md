@@ -89,3 +89,5 @@ nvm uninstall 22.2.0
 ```
 
 restart IDE.
+
+<!-- auto-merge test am-test-p1 -->
