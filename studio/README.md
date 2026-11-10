@@ -36,3 +36,5 @@ MASA and Offers are enabled in `studio.html`. Disable either independently by se
 - `mas-offers-enabled`: Offers catalog and product details.
 
 Reload after changing the configuration. Missing flags default to disabled. These are rollout flags, not authorization controls. Disabled features do not import their implementations, load their styles, or initialize their storage. Enabled features load on navigation; the drawer loads only when opened. Storage failures fall back to in-memory chat sessions.
+
+<!-- auto-merge test am-test-p3 -->
