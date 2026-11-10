@@ -156,3 +156,5 @@ Creates the offer baseline fragment (offer model) of a product arrangement at `/
 ```sh
 node create-offer-baseline.mjs author-p22655-e59433 phsp_direct_individual --locale=en_US --dry-run
 ```
+
+<!-- auto-merge test q2 -->
