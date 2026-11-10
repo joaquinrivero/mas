@@ -210,3 +210,5 @@ noon. Although every price HTML fixture matches on Node 20, the two strict
 time-literal goldens do not. Requiring Node 22 (already required by io/www)
 preserves the extracted formatter unchanged instead of concealing drift or
 changing locale-sensitive behavior during extraction.
+
+<!-- auto-merge test am-test-p2 -->
