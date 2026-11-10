@@ -20,3 +20,4 @@ ADRs are grouped by domain: `<domain>/<PREFIX>-NNNN-short-title.md`, each domain
 | [CONT-0006](./content/CONT-0006-select-one-fragment-variation.md)               | Select one promotion, regional or PZN variation per fragment               | active |
 
 <!-- auto-merge test am-test-p2 -->
+<!-- refresh checks -->
